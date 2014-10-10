@@ -122,3 +122,35 @@ func TestLoggingBuffer(t *testing.T) {
 		t.Fatal("expected a read failure")
 	}
 }
+
+func TestBrokenReadWriter(t *testing.T) {
+	brw := NewBrokenReadWriter(0)
+	_, err := brw.Write([]byte("HI"))
+	if err == nil {
+		t.Fatal("expected a write failure")
+	}
+
+	brw.Extend(1)
+	_, err = brw.Write([]byte("HI"))
+	if err == nil {
+		t.Fatal("expected a write failure")
+	}
+
+	brw.Reset()
+	brw.Extend(1)
+	_, err = brw.Write([]byte("HI"))
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	var p = make([]byte, 2)
+	_, err = brw.Read(p)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	_, err = brw.Read(p)
+	if err == nil {
+		t.Fatal("expected a read failure")
+	}
+}

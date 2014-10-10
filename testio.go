@@ -52,6 +52,52 @@ func (w *BrokenWriter) Reset() {
 	w.current = 0
 }
 
+// BrokenReadWriter implements a broken reader and writer, backed by a
+// bytes.Buffer.
+type BrokenReadWriter struct {
+	limit, current int
+	buf            *bytes.Buffer
+}
+
+// NewBrokenReadWriter initialises a new BrokerReadWriter with an empty
+// reader and the specified limit.
+func NewBrokenReadWriter(limit int) *BrokenReadWriter {
+	return &BrokenReadWriter{
+		limit: limit,
+		buf:   &bytes.Buffer{},
+	}
+}
+
+// Write satisfies the Writer interface.
+func (brw *BrokenReadWriter) Write(p []byte) (int, error) {
+	if (len(p) + brw.buf.Len()) > brw.limit {
+		remain := brw.limit - brw.buf.Len()
+		if remain > 0 {
+			brw.buf.Write(p[:remain])
+			return remain, errors.New("testio: write failed")
+		}
+		return 0, errors.New("testio: write failed")
+	}
+	return brw.buf.Write(p)
+}
+
+// Read satisfies the Reader interface.
+func (brw *BrokenReadWriter) Read(p []byte) (int, error) {
+	n, err := brw.buf.Read(p)
+	brw.current -= n
+	return n, err
+}
+
+// Extend increases the BrokenReadWriter limit.
+func (brw *BrokenReadWriter) Extend(n int) {
+	brw.limit += n
+}
+
+// Reset clears the internal buffer. It retains its original limit.
+func (brw *BrokenReadWriter) Reset() {
+	brw.buf.Reset()
+}
+
 // BufCloser is a buffer wrapped with a Close method.
 type BufCloser struct {
 	buf *bytes.Buffer
