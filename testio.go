@@ -1,7 +1,10 @@
 // Package testio implements various io utility types. Included are
 // BrokenWriter, which fails after writing a certain number of bytes;
-// a BufCloser, which wraps a bytes.Buffer in a Close method; and a
-// LoggingBuffer that logs all reads and writes.
+// a BufCloser, which wraps a bytes.Buffer in a Close method; a
+// BrokenReadWriter, which fails after writing a certain number of
+// bytes and/or reading a certain number of bytes; a LoggingBuffer
+// that logs all reads and writes; and a BufferConn, that is designed
+// to simulate net.Conn.
 package testio
 
 import (
@@ -208,4 +211,43 @@ func (lb *LoggingBuffer) Read(p []byte) (int, error) {
 
 	fmt.Fprintf(lb.w, "[READ] %x\n", p)
 	return n, err
+}
+
+// BufferConn is a type that can be used to simulate network
+// connections between a "client" (the code that uses the BufferConn)
+// and some simulated "peer". Writes go to a "client" buffer, which is
+// used to record the data sent by the caller, which may be read with
+// ReadPeer. The peer's responses may be simulated by calling
+// WritePeer; when the client reads from the BufferConn, they will see
+// this data.
+type BufferConn struct {
+	client, peer *bytes.Buffer
+}
+
+// NewBufferConn initialises a new simulated network connection.
+func NewBufferConn() *BufferConn {
+	return &BufferConn{
+		client: &bytes.Buffer{},
+		peer:   &bytes.Buffer{},
+	}
+}
+
+// Write writes to the client buffer.
+func (bc *BufferConn) Write(p []byte) (int, error) {
+	return bc.client.Write(p)
+}
+
+// Read reads from the peer buffer.
+func (bc *BufferConn) Read(p []byte) (int, error) {
+	return bc.peer.Read(p)
+}
+
+// WritePeer writes data to the peer buffer.
+func (bc *BufferConn) WritePeer(p []byte) (int, error) {
+	return bc.peer.Write(p)
+}
+
+// ReadClient reads data from the client buffer.
+func (bc *BufferConn) ReadClient(p []byte) (int, error) {
+	return bc.client.Read(p)
 }

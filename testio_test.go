@@ -175,3 +175,42 @@ func TestBrokenReadWriter(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 }
+
+func TestBufferConn(t *testing.T) {
+	bc := NewBufferConn()
+
+	client := []byte("AB")
+	peer := []byte("XY")
+
+	_, err := bc.WritePeer(peer)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	var p = make([]byte, 2)
+	_, err = bc.Write(client)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	_, err = bc.Read(p)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	if !bytes.Equal(p, peer) {
+		t.Fatalf("client should have read %x, but read %x",
+			peer, p)
+	}
+
+	_, err = bc.ReadClient(p)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	if !bytes.Equal(client, p) {
+		t.Fatalf("client should have sent %x, but sent %x",
+			client, p)
+	}
+
+}
