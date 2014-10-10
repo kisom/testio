@@ -124,33 +124,54 @@ func TestLoggingBuffer(t *testing.T) {
 }
 
 func TestBrokenReadWriter(t *testing.T) {
-	brw := NewBrokenReadWriter(0)
-	_, err := brw.Write([]byte("HI"))
+	brw := NewBrokenReadWriter(0, 0)
+	lb := NewLoggingBuffer(brw)
+
+	var p = make([]byte, 2)
+	var data = []byte("HI")
+	_, err := lb.Write(data)
 	if err == nil {
 		t.Fatal("expected a write failure")
 	}
 
-	brw.Extend(1)
-	_, err = brw.Write([]byte("HI"))
+	_, err = lb.Read(p)
+	if err == nil {
+		t.Fatal("expected a read failure")
+	}
+
+	brw.Extend(1, 0)
+	_, err = lb.Write(data)
 	if err == nil {
 		t.Fatal("expected a write failure")
+	}
+
+	brw.Extend(2, 0)
+	_, err = lb.Write(data)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	brw.Extend(4, 1)
+	_, err = lb.Write(data)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	_, err = lb.Read(p)
+	if err == nil {
+		t.Fatal("expected a read failure")
 	}
 
 	brw.Reset()
-	brw.Extend(1)
-	_, err = brw.Write([]byte("HI"))
+	brw.Extend(10, 2)
+	_, err = lb.Write(data)
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
 
-	var p = make([]byte, 2)
-	_, err = brw.Read(p)
+	p = make([]byte, 1)
+	_, err = lb.Read(p)
 	if err != nil {
 		t.Fatalf("%v", err)
-	}
-
-	_, err = brw.Read(p)
-	if err == nil {
-		t.Fatal("expected a read failure")
 	}
 }

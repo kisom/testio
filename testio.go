@@ -34,7 +34,7 @@ func (w *BrokenWriter) Write(p []byte) (int, error) {
 	} else {
 		spill := (len(p) + w.current) - w.limit
 		w.current = w.limit
-		return len(p) - spill, errors.New("write failed")
+		return len(p) - spill, errors.New("testio: write failed")
 	}
 
 	return len(p), nil
@@ -55,23 +55,24 @@ func (w *BrokenWriter) Reset() {
 // BrokenReadWriter implements a broken reader and writer, backed by a
 // bytes.Buffer.
 type BrokenReadWriter struct {
-	limit, current int
+	rlimit, wlimit int
 	buf            *bytes.Buffer
 }
 
 // NewBrokenReadWriter initialises a new BrokerReadWriter with an empty
-// reader and the specified limit.
-func NewBrokenReadWriter(limit int) *BrokenReadWriter {
+// reader and the specified limits.
+func NewBrokenReadWriter(wlimit, rlimit int) *BrokenReadWriter {
 	return &BrokenReadWriter{
-		limit: limit,
-		buf:   &bytes.Buffer{},
+		wlimit: wlimit,
+		rlimit: rlimit,
+		buf:    &bytes.Buffer{},
 	}
 }
 
 // Write satisfies the Writer interface.
 func (brw *BrokenReadWriter) Write(p []byte) (int, error) {
-	if (len(p) + brw.buf.Len()) > brw.limit {
-		remain := brw.limit - brw.buf.Len()
+	if (len(p) + brw.buf.Len()) > brw.wlimit {
+		remain := brw.wlimit - brw.buf.Len()
 		if remain > 0 {
 			brw.buf.Write(p[:remain])
 			return remain, errors.New("testio: write failed")
@@ -83,14 +84,23 @@ func (brw *BrokenReadWriter) Write(p []byte) (int, error) {
 
 // Read satisfies the Reader interface.
 func (brw *BrokenReadWriter) Read(p []byte) (int, error) {
-	n, err := brw.buf.Read(p)
-	brw.current -= n
-	return n, err
+	remain := brw.rlimit - brw.buf.Len()
+	if len(p) > remain {
+		tmp := make([]byte, len(p)-remain)
+		n, err := brw.buf.Read(tmp)
+		if err == nil {
+			err = io.EOF
+		}
+		copy(p, tmp)
+		return n, err
+	}
+	return brw.buf.Read(p)
 }
 
 // Extend increases the BrokenReadWriter limit.
-func (brw *BrokenReadWriter) Extend(n int) {
-	brw.limit += n
+func (brw *BrokenReadWriter) Extend(w, r int) {
+	brw.rlimit += r
+	brw.wlimit += w
 }
 
 // Reset clears the internal buffer. It retains its original limit.
