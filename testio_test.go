@@ -213,4 +213,8 @@ func TestBufferConn(t *testing.T) {
 			client, p)
 	}
 
+	err = bc.Close()
+	if err != nil {
+		t.Fatalf("Close should always return nil, but it returned %v", err)
+	}
 }
