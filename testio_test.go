@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestBrokerWriter(t *testing.T) {
+func TestBrokenWriter(t *testing.T) {
 	buf := NewBrokenWriter(2)
 	data := []byte{1, 2}
 

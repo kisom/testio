@@ -127,7 +127,9 @@ func (buf *BufCloser) Read(p []byte) (int, error) {
 }
 
 // Close is a stub function to satisfy the io.Closer interface.
-func (buf *BufCloser) Close() {}
+func (buf *BufCloser) Close() error {
+	return nil
+}
 
 // Reset clears the internal buffer.
 func (buf *BufCloser) Reset() {
@@ -250,4 +252,10 @@ func (bc *BufferConn) WritePeer(p []byte) (int, error) {
 // ReadClient reads data from the client buffer.
 func (bc *BufferConn) ReadClient(p []byte) (int, error) {
 	return bc.client.Read(p)
+}
+
+// Close is a dummy operation that allows the BufferConn to be used as
+// an io.Closer.
+func (bc *BufferConn) Close() error {
+	return nil
 }
